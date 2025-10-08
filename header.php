@@ -32,6 +32,10 @@
                 <a href="buy.php" class="px-3 py-1 rounded hover:bg-gray-100">Buy</a>
                 <a href="sell.php" class="px-3 py-1 rounded hover:bg-gray-100">Sell</a>
                 <a href="stock.php" class="px-3 py-1 rounded hover:bg-gray-100">Stock</a>
+                <a href="expense.php" class="px-3 py-1 rounded hover:bg-gray-100">Expenses</a>
+                <a href="balance.php" class="px-3 py-1 rounded hover:bg-gray-100">Balance</a>
+                <a href="capital.php" class="px-3 py-1 rounded hover:bg-gray-100">Capital</a>
+
             </div>
         </div>
 
@@ -42,6 +46,9 @@
             <a href="buy.php" class="block px-3 py-2 rounded hover:bg-gray-100">Buy</a>
             <a href="sell.php" class="block px-3 py-2 rounded hover:bg-gray-100">Sell</a>
             <a href="stock.php" class="block px-3 py-2 rounded hover:bg-gray-100">Stock</a>
+            <a href="expense.php" class="block px-3 py-2 rounded hover:bg-gray-100">Expenses</a>
+            <a href="balance.php" class="block px-3 py-2 rounded hover:bg-gray-100">Balance</a>
+            <a href="capital.php" class="block px-3 py-2 rounded hover:bg-gray-100">Capital</a>
         </div>
     </nav>
 
