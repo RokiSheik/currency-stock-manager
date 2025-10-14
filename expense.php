@@ -26,7 +26,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // ---------------------------
-// 2️⃣ Handle Delete Expense
+// 2️⃣ Handle Edit Expense
+// ---------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'edit') {
+    $id = intval($_POST['id']);
+    $title = trim($_POST['title']);
+    $amount = floatval($_POST['amount']);
+    $note = trim($_POST['note']);
+    $expense_date = $_POST['expense_date'] ?? date('Y-m-d');
+
+    if ($id && $title && $amount > 0) {
+        $stmt = $pdo->prepare("UPDATE expenses SET title=?, amount=?, note=?, expense_date=? WHERE id=?");
+        if ($stmt->execute([$title, $amount, $note, $expense_date, $id])) {
+            flash("Expense updated successfully!");
+            header("Location: expense.php");
+            exit;
+        } else {
+            flash("Error updating expense!", "error");
+        }
+    } else {
+        flash("Please fill in all required fields!", "error");
+    }
+}
+
+// ---------------------------
+// 3️⃣ Handle Delete Expense
 // ---------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     $id = intval($_POST['id']);
@@ -41,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // ---------------------------
-// 3️⃣ Filter Logic
+// 4️⃣ Filter Logic
 // ---------------------------
 $filter = $_GET['filter'] ?? 'all';
 $start_date = null;
@@ -78,7 +102,7 @@ if ($start_date) {
 }
 
 // ---------------------------
-// 4️⃣ Fetch Expenses
+// 5️⃣ Fetch Expenses
 // ---------------------------
 $sql = "SELECT * FROM expenses";
 if ($date_condition) $sql .= $date_condition;
@@ -89,7 +113,7 @@ $stmt->execute($params);
 $expenses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // ---------------------------
-// 5️⃣ Calculate Totals
+// 6️⃣ Calculate Total
 // ---------------------------
 $total_expense = array_sum(array_column($expenses, 'amount'));
 ?>
@@ -142,16 +166,17 @@ $total_expense = array_sum(array_column($expenses, 'amount'));
             <tbody class="bg-white divide-y divide-gray-200">
                 <?php if ($expenses): ?>
                     <?php foreach ($expenses as $e): ?>
-                        <tr class="hover:bg-gray-50">
+                        <tr id="row-<?= $e['id'] ?>" class="hover:bg-gray-50">
                             <td class="border p-2"><?= htmlspecialchars(date('Y-m-d', strtotime($e['expense_date']))) ?></td>
                             <td class="border p-2"><?= htmlspecialchars($e['title']) ?></td>
                             <td class="border p-2 text-right"><?= number_format($e['amount'], 2) ?></td>
                             <td class="border p-2"><?= htmlspecialchars($e['note'] ?? '-') ?></td>
                             <td class="border p-2 text-center">
-                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete this expense?');" class="inline">
+                                <button onclick='openEditModal(<?= json_encode($e) ?>)' class="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded text-xs sm:text-sm">Edit</button>
+                                <form method="POST" class="inline" onsubmit="return confirm('Are you sure?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= $e['id'] ?>">
-                                    <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs sm:text-sm">Delete</button>
+                                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded ml-1 text-xs sm:text-sm">Delete</button>
                                 </form>
                             </td>
                         </tr>
@@ -165,5 +190,63 @@ $total_expense = array_sum(array_column($expenses, 'amount'));
         </table>
     </div>
 </div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h3 class="text-xl font-bold mb-4">Edit Expense</h3>
+        <form method="POST" id="editForm">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="id" id="edit_id">
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Title</label>
+                <input type="text" name="title" id="edit_title" class="border rounded w-full p-2">
+            </div>
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Amount</label>
+                <input type="number" step="0.01" name="amount" id="edit_amount" class="border rounded w-full p-2">
+            </div>
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Date</label>
+                <input type="date" name="expense_date" id="edit_date" class="border rounded w-full p-2">
+            </div>
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Note</label>
+                <input type="text" name="note" id="edit_note" class="border rounded w-full p-2">
+            </div>
+
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="closeModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(data) {
+    document.getElementById('edit_id').value = data.id;
+    document.getElementById('edit_title').value = data.title;
+    document.getElementById('edit_amount').value = parseFloat(data.amount).toFixed(2);
+    document.getElementById('edit_date').value = data.expense_date;
+    document.getElementById('edit_note').value = data.note;
+    document.getElementById('editModal').classList.remove('hidden');
+    document.getElementById('editModal').classList.add('flex');
+}
+
+function closeModal() {
+    document.getElementById('editModal').classList.add('hidden');
+    document.getElementById('editModal').classList.remove('flex');
+}
+
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.target.submit();
+    closeModal();
+});
+</script>
 
 <?php require 'footer.php'; ?>

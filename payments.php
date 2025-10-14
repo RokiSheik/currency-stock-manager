@@ -5,80 +5,69 @@ require 'header.php';
 // ---------------------------
 // 1️⃣ Handle Add Payment
 // ---------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+
     $title = trim($_POST['title']);
     $amount = floatval($_POST['amount']);
     $note = trim($_POST['note']);
     $payment_date = $_POST['payment_date'] ?? date('Y-m-d');
 
-    if ($title && $amount > 0) {
-        // Check if payment already exists for the same date
-        $check = $pdo->prepare("SELECT id FROM payments WHERE payment_date = ?");
-        $check->execute([$payment_date]);
-        $existing = $check->fetch();
-
-        if ($existing) {
-            // Update existing payment for same day
-            $stmt = $pdo->prepare("UPDATE payments SET title=?, amount=?, note=? WHERE id=?");
-            $stmt->execute([$title, $amount, $note, $existing['id']]);
-            flash("Payment updated for this date!");
-        } else {
-            // Insert new record
+    if ($action === 'add') {
+        if ($title && $amount > 0) {
             $stmt = $pdo->prepare("INSERT INTO payments (title, amount, note, payment_date) VALUES (?, ?, ?, ?)");
             $stmt->execute([$title, $amount, $note, $payment_date]);
             flash("Payment added successfully!");
+            header("Location: payments.php");
+            exit;
+        } else {
+            flash("Please fill in all required fields!", "error");
         }
-
-        header("Location: payments.php");
-        exit;
-    } else {
-        flash("Please fill in all required fields!", "error");
     }
-}
 
-// ---------------------------
-// 2️⃣ Handle Delete Payment
-// ---------------------------
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-    $id = intval($_POST['id']);
-    $stmt = $pdo->prepare("DELETE FROM payments WHERE id = ?");
-    if ($stmt->execute([$id])) {
+    if ($action === 'edit') {
+        $id = intval($_POST['id']);
+        if ($id && $title && $amount > 0) {
+            $stmt = $pdo->prepare("UPDATE payments SET title=?, amount=?, note=?, payment_date=? WHERE id=?");
+            $stmt->execute([$title, $amount, $note, $payment_date, $id]);
+            flash("Payment updated successfully!");
+            header("Location: payments.php");
+            exit;
+        } else {
+            flash("Please fill in all required fields!", "error");
+        }
+    }
+
+    if ($action === 'delete') {
+        $id = intval($_POST['id']);
+        $stmt = $pdo->prepare("DELETE FROM payments WHERE id = ?");
+        $stmt->execute([$id]);
         flash("Payment deleted successfully!");
         header("Location: payments.php");
         exit;
-    } else {
-        flash("Error deleting payment!", "error");
     }
 }
 
 // ---------------------------
-// 3️⃣ Filter Logic
+// 2️⃣ Filter Logic
 // ---------------------------
 $filter = $_GET['filter'] ?? 'all';
 $start_date = null;
 $end_date = date('Y-m-d 23:59:59');
 
 switch ($filter) {
-    case 'today':
-        $start_date = date('Y-m-d 00:00:00');
-        break;
-    case 'this_week':
-        $start_date = date('Y-m-d 00:00:00', strtotime('monday this week'));
-        break;
+    case 'today': $start_date = date('Y-m-d 00:00:00'); break;
+    case 'this_week': $start_date = date('Y-m-d 00:00:00', strtotime('monday this week')); break;
     case 'last_week':
         $start_date = date('Y-m-d 00:00:00', strtotime('monday last week'));
         $end_date = date('Y-m-d 23:59:59', strtotime('sunday last week'));
         break;
-    case 'this_month':
-        $start_date = date('Y-m-01 00:00:00');
-        break;
+    case 'this_month': $start_date = date('Y-m-01 00:00:00'); break;
     case 'last_month':
         $start_date = date('Y-m-01 00:00:00', strtotime('first day of last month'));
         $end_date = date('Y-m-t 23:59:59', strtotime('last day of last month'));
         break;
-    case 'this_year':
-        $start_date = date('Y-01-01 00:00:00');
-        break;
+    case 'this_year': $start_date = date('Y-01-01 00:00:00'); break;
 }
 
 $params = [];
@@ -89,18 +78,17 @@ if ($start_date) {
 }
 
 // ---------------------------
-// 4️⃣ Fetch Payments
+// 3️⃣ Fetch Payments
 // ---------------------------
 $sql = "SELECT * FROM payments";
 if ($date_condition) $sql .= $date_condition;
 $sql .= " ORDER BY payment_date DESC";
-
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // ---------------------------
-// 5️⃣ Calculate Totals
+// 4️⃣ Calculate Total
 // ---------------------------
 $total_payment = array_sum(array_column($payments, 'amount'));
 ?>
@@ -138,7 +126,7 @@ $total_payment = array_sum(array_column($payments, 'amount'));
         Total Payment: <?= number_format($total_payment, 2) ?>
     </div>
 
-    <!-- Payment List -->
+    <!-- Payment Table -->
     <div class="overflow-x-auto">
         <table class="min-w-full border-collapse text-sm sm:text-base">
             <thead class="bg-gray-100 text-gray-700">
@@ -153,16 +141,17 @@ $total_payment = array_sum(array_column($payments, 'amount'));
             <tbody class="bg-white divide-y divide-gray-200">
                 <?php if ($payments): ?>
                     <?php foreach ($payments as $p): ?>
-                        <tr class="hover:bg-gray-50">
+                        <tr id="row-<?= $p['id'] ?>" class="hover:bg-gray-50">
                             <td class="border p-2"><?= htmlspecialchars(date('Y-m-d', strtotime($p['payment_date']))) ?></td>
                             <td class="border p-2"><?= htmlspecialchars($p['title']) ?></td>
                             <td class="border p-2 text-right"><?= number_format($p['amount'], 2) ?></td>
                             <td class="border p-2"><?= htmlspecialchars($p['note'] ?? '-') ?></td>
                             <td class="border p-2 text-center">
-                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete this payment?');" class="inline">
+                                <button onclick='openEditModal(<?= json_encode($p) ?>)' class="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded">Edit</button>
+                                <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this payment?');">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                                    <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs sm:text-sm">Delete</button>
+                                    <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded ml-2 hover:bg-red-600 text-xs sm:text-sm">Delete</button>
                                 </form>
                             </td>
                         </tr>
@@ -176,5 +165,62 @@ $total_payment = array_sum(array_column($payments, 'amount'));
         </table>
     </div>
 </div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h3 class="text-xl font-bold mb-4">Edit Payment</h3>
+        <form method="POST" id="editForm">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="id" id="edit_id">
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Title</label>
+                <input type="text" name="title" id="edit_title" class="border rounded w-full p-2" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Amount</label>
+                <input type="number" step="0.01" name="amount" id="edit_amount" class="border rounded w-full p-2" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Date</label>
+                <input type="date" name="payment_date" id="edit_date" class="border rounded w-full p-2" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="block mb-1 font-semibold">Note</label>
+                <input type="text" name="note" id="edit_note" class="border rounded w-full p-2">
+            </div>
+
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="closeModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditModal(data) {
+    document.getElementById('edit_id').value = data.id;
+    document.getElementById('edit_title').value = data.title;
+    document.getElementById('edit_amount').value = parseFloat(data.amount).toFixed(2);
+    document.getElementById('edit_date').value = data.payment_date;
+    document.getElementById('edit_note').value = data.note;
+    document.getElementById('editModal').classList.remove('hidden');
+    document.getElementById('editModal').classList.add('flex');
+}
+
+function closeModal() {
+    document.getElementById('editModal').classList.add('hidden');
+}
+
+document.getElementById('editForm').addEventListener('submit', function(e) {
+    e.target.submit();
+    closeModal();
+});
+</script>
 
 <?php require 'footer.php'; ?>
