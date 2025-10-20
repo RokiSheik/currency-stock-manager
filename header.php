@@ -12,7 +12,7 @@
 <body class="bg-gray-50 text-gray-800">
     <nav class="bg-white shadow mb-6">
         <div class="container mx-auto flex justify-between items-center p-4">
-            <div class="font-bold text-lg">Currency Stock Manager</div>
+            <div class="font-bold text-lg">Stock Manager</div>
 
             <!-- Hamburger Button (Mobile) -->
             <div class="sm:hidden">
@@ -26,15 +26,16 @@
             </div>
 
             <!-- Menu Links -->
-            <div id="menu" class="hidden sm:flex space-x-3">
+            <div id="menu" class="hidden sm:flex space-x-2 font-bold">
                 <a href="index.php" class="px-3 py-1 rounded hover:bg-gray-100">Dashboard</a>
                 <a href="add_currency.php" class="px-3 py-1 rounded hover:bg-gray-100">Add Currency</a>
-                                <a href="stock.php" class="px-3 py-1 rounded hover:bg-gray-100">Stock</a>
+                <a href="stock.php" class="px-3 py-1 rounded hover:bg-gray-100">Stock</a>
 
                 <a href="buy.php" class="px-3 py-1 rounded hover:bg-gray-100">Buy</a>
                 <a href="sell.php" class="px-3 py-1 rounded hover:bg-gray-100">Sell</a>
                 <a href="expense.php" class="px-3 py-1 rounded hover:bg-gray-100">Expenses</a>
                 <a href="payments.php" class="px-3 py-1 rounded hover:bg-gray-100">Payments</a>
+                <a href="received.php" class="px-3 py-1 rounded hover:bg-gray-100">Received</a>
                 <a href="balance.php" class="px-3 py-1 rounded hover:bg-gray-100">Balance</a>
                 <a href="capital.php" class="px-3 py-1 rounded hover:bg-gray-100">Capital/BDT Cash</a>
                 <a href="debit_credit.php" class="px-3 py-1 rounded hover:bg-gray-100">Debit & Credit</a>
@@ -51,6 +52,7 @@
             <a href="stock.php" class="block px-3 py-2 rounded hover:bg-gray-100">Stock</a>
             <a href="expense.php" class="block px-3 py-2 rounded hover:bg-gray-100">Expenses</a>
             <a href="payments.php" class="block px-3 py-2 rounded hover:bg-gray-100">Payments</a>
+            <a href="received.php" class="block px-3 py-2 rounded hover:bg-gray-100">Received</a>
             <a href="balance.php" class="block px-3 py-2 rounded hover:bg-gray-100">Balance</a>
             <a href="capital.php" class="block px-3 py-2 rounded hover:bg-gray-100">Capital</a>
             <a href="debit_credit.php" class="block px-3 py-2 rounded hover:bg-gray-100">Debit & Credit</a>
